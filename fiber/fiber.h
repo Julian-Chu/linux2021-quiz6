@@ -10,9 +10,9 @@
 /* The size of the stack for each fiber. */
 #define FIBER_STACK (1024 * 1024)
 
-#define _GNU_SOURCE
+/* #define _GNU_SOURCE */
 
-#include <linux/sched.h> /* For clone */
+#include <sched.h> /* For clone */ 
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h> /* For pid_t */
