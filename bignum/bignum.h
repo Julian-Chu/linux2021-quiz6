@@ -24,19 +24,15 @@ static inline void bn_init(struct bn *n) {
 static inline void bn_from_int(struct bn *n, UTYPE_TMP i) {
     bn_init(n);
 
-    /* FIXME: what if machine is not little-endian? */
-    uint32_t x = 1;
-    if(*(char*)(&x) == 1){
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
         n->array[0] = i;
-        /* bit-shift with U64 operands to force 64-bit results */
         UTYPE_TMP tmp = i >> 32;
         n->array[1] = tmp;
-    }else{
+#else
         n->array[1] = i;
-        /* bit-shift with U64 operands to force 64-bit results */
         UTYPE_TMP tmp = i >> 32;
         n->array[0] = tmp;
-    }
+#endif
 }
 
 static void bn_to_str(struct bn *n, char *str, int nbytes) {
