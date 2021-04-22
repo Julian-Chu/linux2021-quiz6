@@ -1,7 +1,7 @@
 all:
-	gcc  -o bg.o -g main.c
+	gcc  -o bn.o -g main.c
 
 clean:
-	rm bg.o
+	rm bn.o
 
 

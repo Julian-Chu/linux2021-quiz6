@@ -11,7 +11,7 @@
 #define FORMAT_STRING "%.08x"
 #define MAX_VAL ((UTYPE_TMP) 0xFFFFFFFF)
 
-#define BN_ARRAY_SIZE (128 / UNIT_SIZE) /* size of big-numbers in bytes */
+#define BN_ARRAY_SIZE (8 / UNIT_SIZE) /* size of big-numbers in bytes */
 
 /* bn consists of array of TYPE */
 struct bn { UTYPE array[BN_ARRAY_SIZE]; };
@@ -59,24 +59,31 @@ static void bn_to_str(struct bn *n, char *str, int nbytes) {
     str[i] = 0;
 }
 
+#define ErrOverflow 1
+
 /* Decrement: subtract 1 from n */
-static void bn_dec(struct bn *n) {
+static int bn_dec(struct bn *n) {
     for (int i = 0; i < BN_ARRAY_SIZE; ++i) {
         UTYPE tmp = n->array[i];
         UTYPE res = tmp - 1;
         n->array[i] = res;
 
-        if(!(res>tmp))break;
+        if(!(res>tmp)) return 0;
     }
+    return ErrOverflow;
 }
 
-static void bn_add(struct bn *a, struct bn *b, struct bn *c) {
+static int bn_add(struct bn *a, struct bn *b, struct bn *c) {
     int carry = 0;
     for (int i = 0; i < BN_ARRAY_SIZE; ++i) {
         UTYPE_TMP tmp = (UTYPE_TMP) a->array[i] + b->array[i] + carry;
         carry = (tmp > MAX_VAL);
+        if(carry && i == (BN_ARRAY_SIZE - 1)){
+            return ErrOverflow;
+        }
         c->array[i] = (tmp & MAX_VAL);
     }
+    return 0;
 }
 
 static inline void lshift_unit(struct bn *a, int n_units) {
@@ -89,10 +96,9 @@ static inline void lshift_unit(struct bn *a, int n_units) {
         a->array[i] = 0;
 }
 
-static void bn_mul(struct bn *a, struct bn *b, struct bn *c) {
+static int bn_mul(struct bn *a, struct bn *b, struct bn *c) {
     struct bn row, tmp;
     bn_init(c);
-
     for (int i = 0; i < BN_ARRAY_SIZE; ++i) {
         bn_init(&row);
 
@@ -100,13 +106,21 @@ static void bn_mul(struct bn *a, struct bn *b, struct bn *c) {
             if (i + j < BN_ARRAY_SIZE) {
                 bn_init(&tmp);
                 UTYPE_TMP intermediate = a->array[i]*(UTYPE_TMP) b->array[j];
+                printf("a[%d]:%u, b[%d]:%u\n", i, a->array[i], j, b->array[j]);
+                printf("i:%d, j:%d, intermediate: %0.8lx\n", i, j, intermediate);
                 bn_from_int(&tmp, intermediate);
                 lshift_unit(&tmp, i + j);
-                bn_add(&tmp, &row, &row);
+                int err = bn_add(&tmp, &row, &row);
+                if(err) return ErrOverflow;
             }
         }
-        bn_add(c, &row, c);
+        int err = bn_add(c, &row, c);
+        char c_buf[8192];                        
+        bn_to_str(c, c_buf, sizeof(c_buf));
+        printf("c = %s\n", c_buf);
+        if(err) return ErrOverflow;
     }
+    return 0;
 }
 
 static bool bn_is_zero(struct bn *n) {
