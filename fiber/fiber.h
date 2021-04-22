@@ -79,8 +79,8 @@ int fiber_spawn(void (*func)(void))
 
     fiber_list[num_fibers].pid = clone(
         fiber_start, (char *)fiber_list[num_fibers].stack + FIBER_STACK,
-        /* SIGCHLD | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_VM, args); */
-        SIGCHLD | CLONE_FS | CLONE_FILES , args);
+        SIGCHLD | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_VM, args);
+        /* SIGCHLD | CLONE_FS | CLONE_FILES , args); */
     if (fiber_list[num_fibers].pid == -1) {
         free(fiber_list[num_fibers].stack);
         free(args);
